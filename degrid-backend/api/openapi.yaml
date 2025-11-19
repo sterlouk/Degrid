@@ -1,0 +1,395 @@
+openapi: 3.0.0
+info:
+  title: DeGrid Game API
+  description: >
+    Backend API for the DeGrid game — a turn-based grid claiming game with a
+    challenge mechanic (1–100 challenge).  
+    Supports game creation, player management, grid operations, turns, claims, and rematch voting.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+
+  /games:
+    post:
+      summary: Create a new game
+      description: Initializes a new game session with chosen grid size, language, and maximum players.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGameRequest"
+            example:
+              language: "en"
+              maxPlayers: 6
+              gridSize: 10
+      responses:
+        "201":
+          description: Game created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+
+  /games/{gameId}:
+    get:
+      summary: Get game info
+      description: Returns details about a specific game, including players and grid setup.
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+      responses:
+        "200":
+          description: Game details returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "404":
+          description: Game not found
+
+  /games/{gameId}/grid:
+    get:
+      summary: Get grid cells
+      description: Returns the grid (array of cells) for a specific game.
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+      responses:
+        "200":
+          description: Grid returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cell"
+
+    put:
+      summary: Update grid (system operation)
+      description: >
+        Updates the grid after system logic executes at the end of a round.
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+      responses:
+        "200":
+          description: Grid updated successfully
+
+  /games/{gameId}/players:
+    post:
+      summary: Player joins a game
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinGameRequest"
+            example:
+              playerId: 12
+              username: "alex"
+              language: "en"
+      responses:
+        "200":
+          description: Player added to game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /games/{gameId}/players/{playerId}:
+    delete:
+      summary: Remove player from game
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+        - $ref: "#/components/parameters/playerId"
+      responses:
+        "200":
+          description: Player removed
+        "404":
+          description: Player or game not found
+
+  /games/{gameId}/players/{playerId}/profile:
+    put:
+      summary: Update player profile
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+        - $ref: "#/components/parameters/playerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+            example:
+              username: "newName"
+              language: "en"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /games/{gameId}/turn:
+    get:
+      summary: Get current turn info
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+      responses:
+        "200":
+          description: Current turn info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TurnInfo"
+
+  /games/{gameId}/turn-order:
+    put:
+      summary: Set turn order
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TurnOrderRequest"
+            example:
+              order: [3, 1, 2]
+      responses:
+        "200":
+          description: Turn order updated
+
+  /games/{gameId}/cells/{cellId}/claim:
+    post:
+      summary: Claim or challenge a cell
+      description: >
+        Resolves cell claiming using the 1–100 random challenge mechanic.
+        Behavior (server-side):
+        - If the cell has no stored challenge value, the server assigns and stores a random integer between 1 and 100 (hidden from the client). No ownership transfer occurs on that first assignment — it establishes the target value.
+        - On subsequent attempts, the server generates a new random integer (the attempt). If attempt <= stored value, the ownership is transferred to the challenger; otherwise the attempt fails and ownership remains.
+        The server MAY keep the stored challenge value hidden from clients (recommended). The response contains a `success` flag indicating whether the attempt resulted in ownership transfer.
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+        - $ref: "#/components/parameters/cellId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimCellRequest"
+            example:
+              playerId: 7
+      responses:
+        "200":
+          description: Claim/challenge resolved — response includes success flag and (when successful) the updated cell
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResult"
+              examples:
+                successExample:
+                  summary: Successful claim example
+                  value:
+                    success: true
+                    message: "Cell claimed"
+                    cell:
+                      $ref: "#/components/schemas/Cell"
+                failedExample:
+                  summary: Failed attempt example
+                  value:
+                    success: false
+                    message: "Attempt failed - try again"
+                    cell: null
+        "404":
+          description: Game or cell not found
+
+  /games/{gameId}/players/{playerId}/rematch:
+    post:
+      summary: Player votes for rematch
+      parameters:
+        - $ref: "#/components/parameters/gameId"
+        - $ref: "#/components/parameters/playerId"
+      responses:
+        "200":
+          description: Vote recorded
+
+components:
+
+  parameters:
+    gameId:
+      name: gameId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    playerId:
+      name: playerId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    cellId:
+      name: cellId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+
+    Player:
+      type: object
+      properties:
+        playerId:
+          type: integer
+        username:
+          type: string
+        language:
+          type: string
+      example:
+        playerId: 12
+        username: "alex"
+        language: "en"
+
+    Cell:
+      type: object
+      properties:
+        cellId:
+          type: integer
+        owner:
+          type: integer
+        cellColour:
+          type: string
+        challengeValue:
+          type: integer
+          minimum: 1
+          maximum: 100
+          readOnly: true
+      example:
+        cellId: 2
+        owner: 12
+        cellColour: "blue"
+        # challengeValue is server-managed and marked readOnly in the schema; it may be omitted from normal client responses
+
+    Game:
+      type: object
+      properties:
+        gameId:
+          type: integer
+        language:
+          type: string
+        gridSize:
+          type: integer
+        maxPlayers:
+          type: integer
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+      example:
+        gameId: 1
+        language: "en"
+        gridSize: 10
+        maxPlayers: 6
+        players:
+          - playerId: 12
+            username: "alex"
+            language: "en"
+          - playerId: 19
+            username: "maria"
+            language: "gr"
+
+    CreateGameRequest:
+      required: [language, maxPlayers, gridSize]
+      type: object
+      properties:
+        language:
+          type: string
+        maxPlayers:
+          type: integer
+        gridSize:
+          type: integer
+
+    JoinGameRequest:
+      required: [playerId]
+      type: object
+      properties:
+        playerId:
+          type: integer
+        username:
+          type: string
+        language:
+          type: string
+
+    UpdateProfileRequest:
+      required: [username, language]
+      type: object
+      properties:
+        username:
+          type: string
+        language:
+          type: string
+
+    ClaimCellRequest:
+      required: [playerId]
+      type: object
+      properties:
+        playerId:
+          type: integer
+
+    TurnInfo:
+      type: object
+      properties:
+        currentPlayerId:
+          type: integer
+        turnNumber:
+          type: integer
+      example:
+        currentPlayerId: 12
+        turnNumber: 4
+
+    TurnOrderRequest:
+      required: [order]
+      type: object
+      properties:
+        order:
+          type: array
+          items:
+            type: integer
+
+    ClaimResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        cell:
+          oneOf:
+            - $ref: '#/components/schemas/Cell'
+            - type: 'null'
+          nullable: true
+        attemptValue:
+          type: integer
+          minimum: 1
+          maximum: 100
+          readOnly: true
+          nullable: true
+        storedValue:
+          type: integer
+          minimum: 1
+          maximum: 100
+          readOnly: true
+          nullable: true
+      example:
+        success: false
+        message: "Attempt failed - ownership not transferred"
+        cell: null

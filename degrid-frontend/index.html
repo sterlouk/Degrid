@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Degrid - Frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Inline error banner: visible if frontend JS throws during startup -->
+    <div id="app-status" style="position:fixed;left:16px;right:16px;bottom:16px;padding:10px;border-radius:6px;background:rgba(255,0,0,0.9);color:#fff;display:none;z-index:9999;font-family:Inter,Arial,sans-serif">
+      Frontend failed to start — open DevTools Console for details
+    </div>
+    <script>
+      // Show a visible banner if an uncaught error or unhandled rejection happens during app startup
+      const status = document.getElementById('app-status')
+      function showError(msg, stack){
+        if(status){
+          status.style.display = 'block'
+          status.textContent = 'Frontend error: '+msg
+          if(stack){
+            const pre = document.createElement('pre')
+            pre.style.marginTop = '8px'
+            pre.style.whiteSpace = 'pre-wrap'
+            pre.style.maxHeight = '160px'
+            pre.style.overflow = 'auto'
+            pre.textContent = stack
+            status.appendChild(pre)
+          }
+        }
+      }
+      window.addEventListener('error', (e)=>{ showError(e.message || 'Unknown error', e.error && e.error.stack) })
+      window.addEventListener('unhandledrejection', (e)=>{
+        const reason = e?.reason
+        showError(reason?.message || String(reason) || 'Unhandled rejection', reason?.stack || (typeof reason === 'string' ? reason : null))
+      })
+      // also expose a global helper so we can manually indicate readiness from app code if desired
+      window.__degrid_app_ready = false
+      setTimeout(()=>{ if(!window.__degrid_app_ready) { /* keep hidden, errors will show if any */ } }, 1500)
+    </script>
+
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

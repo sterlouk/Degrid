@@ -1,0 +1,10 @@
+/* Challenge page styles */
+.challenge-root{ padding:20px; display:flex; gap:24px; align-items:flex-start }
+.challenge-left{ flex:1; }
+.challenge-right{ width:360px; background:#fff; border:1px solid #eee; padding:16px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06) }
+.big-die{ width:160px; height:160px; border-radius:12px; background:#ffffff; color:#000; display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,0.08); margin-bottom:12px }
+.roll-btn{ display:inline-block; padding:10px 16px; background:#0077ff; color:#fff; border-radius:8px; cursor:pointer; border:none }
+.result-success{ color:green; font-weight:700 }
+.result-fail{ color:crimson; font-weight:700 }
+.confetti{ position:relative; height:100px }
+.confetti .dot{ position:absolute; width:10px; height:10px; border-radius:50% }

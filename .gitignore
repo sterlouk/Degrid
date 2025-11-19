@@ -1,0 +1,14 @@
+# Node modules
+node_modules/
+
+# Environment files
+degrid-backend/.env
+degrid-frontend/.env
+
+# Build output
+degrid-frontend/dist
+degrid-frontend/build
+
+# Logs
+npm-debug.log
+yarn-error.log
