@@ -9,6 +9,7 @@ build/
 # local env files
 .env
 .env.*
+!.env.production
 
 # OS files
 .DS_Store

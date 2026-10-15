@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../api/client'
+import { clearSeats, getSeatToken } from '../api/seats'
 import Grid from '../components/Grid'
 
 export default function GridPage(){
@@ -51,13 +52,13 @@ export default function GridPage(){
 
   const handleRestart = async () => {
     if (resetting) return
-    if (!confirm('Restart the game and reset to initial state?')) return
+    const adminToken = prompt('Restarting resets the board and frees every seat.\nEnter the admin token:')
+    if (!adminToken) return
     setResetting(true)
     try{
-      await api.post('/game/reset')
-      await fetchPlayers()
-      await fetchGrid()
-      await fetchTurn()
+      await api.post('/game/reset', null, { headers: { Authorization: `Bearer ${adminToken}` } })
+      clearSeats()
+      navigate('/')
     }catch(e){
       console.error('reset failed', e)
       alert('Reset failed: ' + (e?.response?.data?.message || e?.message))
@@ -129,6 +130,10 @@ export default function GridPage(){
       <Grid cells={cells} onRefresh={fetchGrid} availableSet={availableSet} onCellClick={(cell)=>{
         if (!currentPlayerId) {
           alert('No current player set')
+          return
+        }
+        if (!getSeatToken(currentPlayerId)) {
+          alert(`It's ${currentTurnPlayer?.name ?? 'another player'}'s turn, and you don't control that seat.`)
           return
         }
         // prevent requesting a cell the player already owns

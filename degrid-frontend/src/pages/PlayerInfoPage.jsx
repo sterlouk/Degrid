@@ -18,7 +18,12 @@ export default function PlayerInfoPage(){
 
   const save = async () => {
     if (!selected) return
-    await api.put(`/players/${selected.playerId}`, { description: editingDesc })
+    try {
+      await api.put(`/players/${selected.playerId}`, { description: editingDesc })
+    } catch (e) {
+      alert('Not saved: ' + (e?.response?.data?.message || e.message))
+      return
+    }
     // refresh list
     const r = await api.get('/players')
     setPlayers(r.data.players)
@@ -44,7 +49,7 @@ export default function PlayerInfoPage(){
               <div>Color: {selected.color}</div>
               <div>Claimed cells: {selected.claimedCells?.join(', ')}</div>
               <h4>Edit description</h4>
-              <textarea value={editingDesc} onChange={e=>setEditingDesc(e.target.value)} rows={4} />
+              <textarea value={editingDesc} onChange={e=>setEditingDesc(e.target.value)} rows={4} maxLength={280} />
               <div>
                 <button onClick={save}>Save</button>
               </div>

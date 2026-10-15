@@ -20,6 +20,7 @@ export default function CellRequestPage(){
   const [displayNum, setDisplayNum] = useState(0)
   const intervalRef = useRef(null)
   const startBtnRef = useRef(null)
+  const challengeInFlight = useRef(false)
   const [autoRequested, setAutoRequested] = useState(false)
 
   useEffect(()=>{
@@ -36,6 +37,7 @@ export default function CellRequestPage(){
     setModalOwner(null)
     setShowModal(false)
     setAutoRequested(false)
+    challengeInFlight.current = false
 
     ;(async ()=>{
       try{
@@ -78,8 +80,8 @@ export default function CellRequestPage(){
         try{
           const cellResp = await api.get(`/cells/${cellInfo.cellId}`)
           setModalCell(cellResp.data.cell)
-          if (cellResp.data.cell['cell-owner']){
-            const ownerId = cellResp.data.cell['cell-owner']
+          if (cellResp.data.cell.owner){
+            const ownerId = cellResp.data.cell.owner
             const ownerResp = await api.get(`/players/${ownerId}`)
             setModalOwner(ownerResp.data.player)
           } else {
@@ -97,6 +99,9 @@ export default function CellRequestPage(){
   }
 
   const startChallengeFromModal = async (challengeIdToStart) =>{
+    // State updates are async, so a fast double-click could send the challenge twice
+    if (challengeInFlight.current) return
+    challengeInFlight.current = true
     setRolling(true)
     setDisplayNum(0)
     try{
@@ -134,6 +139,7 @@ export default function CellRequestPage(){
         }
       }, 80)
     }catch(e){
+        challengeInFlight.current = false
         setRolling(false)
         setResp(e?.response?.data || { error: e?.message || 'Unknown error' })
     }
@@ -162,8 +168,8 @@ export default function CellRequestPage(){
       </div>
 
       <div className="response">
-        {resp && resp.error && (
-          <div className="error">{resp.error}</div>
+        {resp && (resp.error || (resp.success === false && resp.attempt === undefined)) && (
+          <div className="error">{resp.error || resp.message}</div>
         )}
       </div>
 
