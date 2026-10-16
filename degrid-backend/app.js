@@ -4,47 +4,33 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { getLogger } from './middleware/logger.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
-// only use the simple game routes for the refocused implementation
-import simpleRoutes from './routes/simpleGame.js';
+import gameRoutes from './routes/game.js';
 
 /**
- * Create and configure Express application
- * @returns {Object} Configured Express app
+ * Allowed browser origins, from CORS_ORIGIN (comma-separated).
+ * Defaults to the Vite dev server. Auth uses bearer tokens, not cookies, so
+ * credentialed CORS is not needed.
  */
+const allowedOrigins = () =>
+  (process.env.CORS_ORIGIN || 'http://localhost:5173')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
 const createApp = () => {
   const app = express();
 
-  // Security middleware
   app.use(helmet());
-
-  // CORS configuration
-  const corsOptions = {
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true,
-    optionsSuccessStatus: 200,
-  };
-  app.use(cors(corsOptions));
-
-  // Body parsing middleware
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-  // Compression middleware
+  app.use(cors({ origin: allowedOrigins() }));
+  app.use(express.json({ limit: '10kb' }));
   app.use(compression());
-
-  // Logging middleware
   app.use(getLogger());
 
-  // Simple in-memory game endpoints (refocused implementation)
-  // Mount at root so frontend can call /players, /grid, etc.
-  app.use('/', simpleRoutes);
+  app.get('/health', (req, res) => res.json({ success: true, status: 'healthy' }));
+  app.use('/', gameRoutes);
 
-  // 404 handler
   app.use(notFound);
-
-  // Global error handler
   app.use(errorHandler);
-
   return app;
 };
 

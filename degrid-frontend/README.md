@@ -1,26 +1,17 @@
-# Degrid Frontend (minimal scaffold)
+# Degrid frontend
 
-This is a minimal Vite + React frontend scaffold for the Degrid simple game backend.
+React + Vite client for the Degrid API.
 
-Prerequisites:
-- Node 18+ (or compatible)
-
-Quick start:
-
-cd frontend
+```bash
 npm install
-npm run dev
+npm run dev     # http://localhost:5173
+npm run build
+```
 
-Default API base URL: http://localhost:3000
-You can override by creating a `.env` file in `frontend/` with:
+The API URL comes from `VITE_API_BASE_URL`. It defaults to `http://localhost:3000`, and [`.env.production`](.env.production) sets the deployed URL for builds. Only `VITE_*` variables reach the browser bundle, and they are public, so never put secrets in them.
 
-VITE_API_BASE_URL=http://localhost:3000
-
-Screens included:
-- Start (Start game button)
-- Players (list + profile edit)
-- Grid (10x10 visual)
-- Cell Request (enter coordinates and request challenge)
-- Challenge (start challenge with challengeId)
-
-This scaffold is intentionally small so you can iterate quickly. You may replace Vite with CRA if you prefer.
+Screens:
+- **Start:** join seats.
+- **Grid:** the board, the current turn and restart.
+- **Cell request:** claim a cell and roll the challenge.
+- **Players:** view players and edit your profile.
